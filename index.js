@@ -35,7 +35,7 @@ Dbconnect();
 const allMealsCollection = client.db('FodeciousDb').collection('Allmeals');
 const allReviewsCollection = client.db('FodeciousDb').collection('Allreviews')
 const allUserCollection = client.db('FodeciousDb').collection('Allusers')
-
+// const allReviewCollection =  client.db('FodeciousDb').collection('All')
 app.get('/', async (req, res) => {
     res.send('Fodecious server is running');
 })
@@ -92,7 +92,11 @@ app.get('/meals', async (req, res) => {
 //         console.log(error.message);
 //     }
 // })
-
+app.post('/allreviews', async (req, res) => {
+    const review = req.body;
+    const result = await allReviewsCollection.insertOne(review);
+    res.send(result);
+})
 app.post('/jwt', async (req, res) => {
     const user_email = req.body;
     const token = jwt.sign(user_email, process.env.TOKEN_KEY, { expiresIn: '2hr' })
@@ -109,7 +113,27 @@ app.post('/user', async (req, res) => {
     res.send(result)
 })
 
+// app.post('/allReview', async (req, res) => {
+//     const review = req.body;
+//     const
 
+
+// })
+
+// app.patch('/allreviews', async (req, res) => {
+//     const review = req.body;
+//     console.log(review, "backend");
+//     const { title } = req.query;
+//     const filter = { title: title };
+//     const option = { upsert: true }
+//     const update = {
+//         $push: {
+//             userReviews: review
+//         }
+//     }
+//     const result = await allReviewsCollection.updateOne(filter, update, option)
+//     res.send(result)
+// })
 
 app.patch('/meals', async (req, res) => {
     const id = req.query.id;
@@ -121,7 +145,7 @@ app.patch('/meals', async (req, res) => {
             count: 1
         }
     }
-    const result = allMealsCollection.updateOne(filter, update, option)
+    const result = await allMealsCollection.updateOne(filter, update, option)
     res.send(result)
 })
 
