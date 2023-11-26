@@ -36,10 +36,14 @@ const allMealsCollection = client.db('FodeciousDb').collection('Allmeals');
 const allReviewsCollection = client.db('FodeciousDb').collection('Allreviews')
 const allUserCollection = client.db('FodeciousDb').collection('Allusers')
 const allRequestCollection = client.db('FodeciousDb').collection('Allrequest')
+const allUpcoming = client.db('FodeciousDb').collection('UpcomingMeals')
 app.get('/', async (req, res) => {
     res.send('Fodecious server is running');
 })
-
+app.get('/upcoming', async (req, res) => {
+    const result = await allUpcoming.find().toArray();
+    res.send(result)
+})
 app.get('/allreviews', async (req, res) => {
     const { title, email } = req.query;
     console.log(title, email);
@@ -76,9 +80,14 @@ app.get('/meals', async (req, res) => {
         query._id = new ObjectId(id)
     }
     console.log(limit, offset);
-    const meals = await allMealsCollection.find(query).skip(Number(offset)).limit(Number(limit)).toArray();
-    res.send(meals);
+    try {
+        const meals = await allMealsCollection.find(query).skip(Number(offset)).limit(Number(limit)).toArray();
+        res.send(meals);
+    } catch (error) {
+        console.log(error.message);
+    }
 });
+
 app.get('/allRequest', async (req, res) => {
     const { email } = req.query;
     let query = {}
@@ -88,22 +97,11 @@ app.get('/allRequest', async (req, res) => {
     const result = await allRequestCollection.find(query).toArray();
     res.send(result)
 })
-
-
-// app.get('/meals', async (req, res) => {
-//     const id = req.query.id;
-//     console.log(id, "id on server");
-//     let query = {}
-//     if (id) {
-//         query._id = new ObjectId(id)
-//     }
-//     try {
-//         const result = await allMealsCollection.find(query).toArray();
-//         res.send(result)
-//     } catch (error) {
-//         console.log(error.message);
-//     }
-// })
+app.post('/upcoming', async (req, res) => {
+    const meal = req.body;
+    const result = await allUpcoming.insertOne(meal);
+    res.send(result);
+})
 app.post('/allreviews', async (req, res) => {
     const review = req.body;
     const result = await allReviewsCollection.insertOne(review);
@@ -127,8 +125,26 @@ app.post('/user', async (req, res) => {
 
 app.post('/allRequest', async (req, res) => {
     const review = req.body;
-    const result = await allRequestCollection.insertOne(review);
-    res.send(result);
+    console.log(review);
+    const { title } = req.query;
+    console.log(title, "on");
+    const exist = await allRequestCollection.findOne({ title: title });
+    console.log(exist);
+
+    if (exist) {
+        const update = {
+            $set: {
+                count: review.count,
+                rcount: review.rcount,
+            }
+        }
+        const result = await allRequestCollection.updateOne({ title: title }, update)
+        res.send(result)
+    }
+    else {
+        const result = await allRequestCollection.insertOne(review);
+        res.send(result);
+    }
 
 })
 
@@ -158,6 +174,14 @@ app.patch('/meals', async (req, res) => {
         }
     }
     const result = await allMealsCollection.updateOne(filter, update, option)
+    res.send(result)
+})
+
+
+app.delete('/allRequest', async (req, res) => {
+    const { id } = req.query;
+    const filter = { _id: new ObjectId(id) }
+    const result = await allRequestCollection.deleteOne(filter)
     res.send(result)
 })
 
