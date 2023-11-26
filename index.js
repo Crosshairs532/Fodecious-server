@@ -35,16 +35,20 @@ Dbconnect();
 const allMealsCollection = client.db('FodeciousDb').collection('Allmeals');
 const allReviewsCollection = client.db('FodeciousDb').collection('Allreviews')
 const allUserCollection = client.db('FodeciousDb').collection('Allusers')
-// const allReviewCollection =  client.db('FodeciousDb').collection('All')
+const allRequestCollection = client.db('FodeciousDb').collection('Allrequest')
 app.get('/', async (req, res) => {
     res.send('Fodecious server is running');
 })
 
 app.get('/allreviews', async (req, res) => {
-    const title = req.query.title;
+    const { title, email } = req.query;
+    console.log(title, email);
     let review_filter = {}
     if (title) {
         review_filter = { title: title }
+    }
+    if (email) {
+        review_filter = { email: email }
     }
     try {
         const result = await allReviewsCollection.find(review_filter).toArray();
@@ -52,7 +56,6 @@ app.get('/allreviews', async (req, res) => {
     } catch (error) {
         console.log(error);
     }
-
 
 })
 app.get('/user', async (req, res) => {
@@ -76,6 +79,15 @@ app.get('/meals', async (req, res) => {
     const meals = await allMealsCollection.find(query).skip(Number(offset)).limit(Number(limit)).toArray();
     res.send(meals);
 });
+app.get('/allRequest', async (req, res) => {
+    const { email } = req.query;
+    let query = {}
+    if (email) {
+        query = { email: email }
+    }
+    const result = await allRequestCollection.find(query).toArray();
+    res.send(result)
+})
 
 
 // app.get('/meals', async (req, res) => {
@@ -113,12 +125,12 @@ app.post('/user', async (req, res) => {
     res.send(result)
 })
 
-// app.post('/allReview', async (req, res) => {
-//     const review = req.body;
-//     const
+app.post('/allRequest', async (req, res) => {
+    const review = req.body;
+    const result = await allRequestCollection.insertOne(review);
+    res.send(result);
 
-
-// })
+})
 
 // app.patch('/allreviews', async (req, res) => {
 //     const review = req.body;
