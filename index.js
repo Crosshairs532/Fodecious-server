@@ -2,11 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const port = process.env.PORT || 3000;
 const app = express();
+const jwt = require('jsonwebtoken')
 require('dotenv').config();
 app.use(cors())
 app.use(express.json())
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { JsonWebTokenError } = require('jsonwebtoken');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.wtx9jbs.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -53,8 +55,14 @@ app.get('/allreviews', async (req, res) => {
 
 
 })
-app.get('/user', async (res, req) => {
-    const result = await allUserCollection.find().toArray();
+app.get('/user', async (req, res) => {
+    const email = req.query.email;
+    const query = {}
+    console.log(email, "ema");
+    if (email) {
+        query.email = email
+    }
+    const result = await allUserCollection.find(query).toArray();
     res.send(result)
 })
 app.get('/meals', async (req, res) => {
@@ -86,7 +94,9 @@ app.get('/meals', async (req, res) => {
 // })
 
 app.post('/jwt', async (req, res) => {
-    console.log(req.body);
+    const user_email = req.body;
+    const token = jwt.sign(user_email, process.env.TOKEN_KEY, { expiresIn: '2hr' })
+    res.send({ token: token })
 })
 app.post('/user', async (req, res) => {
     const user = req.body;
@@ -97,8 +107,22 @@ app.post('/user', async (req, res) => {
     }
     const result = await allUserCollection.insertOne(user);
     res.send(result)
+})
 
 
+
+app.patch('/meals', async (req, res) => {
+    const id = req.query.id;
+    const filter = { _id: new ObjectId(id) }
+    const option = { upsert: true }
+
+    const update = {
+        $inc: {
+            count: 1
+        }
+    }
+    const result = allMealsCollection.updateOne(filter, update, option)
+    res.send(result)
 })
 
 app.listen(port, () => {
