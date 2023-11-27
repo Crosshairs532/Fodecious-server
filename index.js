@@ -142,7 +142,6 @@ app.get('/meals', async (req, res) => {
         console.log(error.message);
     }
 });
-
 app.get('/allRequest', async (req, res) => {
     const { email } = req.query;
     let query = {}
@@ -152,7 +151,16 @@ app.get('/allRequest', async (req, res) => {
     const result = await allRequestCollection.find(query).toArray();
     res.send(result)
 })
-app.post('/upcoming', async (req, res) => {
+
+
+
+
+app.post('/meals', verifyToken, verifyAdmin, async (req, res) => {
+    const meal = req.body;
+    const result = await allMealsCollection.insertOne(meal);
+    res.send(result);
+})
+app.post('/upcoming', verifyToken, verifyAdmin, async (req, res) => {
     const meal = req.body;
     const result = await allUpcoming.insertOne(meal);
     res.send(result);
@@ -189,7 +197,6 @@ app.post('/allRequest', async (req, res) => {
             $set: {
                 count: request_meal.count,
                 rcount: request_meal.rcount,
-
             },
             $inc: { request_count: 1 }
         }
@@ -219,7 +226,8 @@ app.post('/allRequest', async (req, res) => {
 //     const result = await allReviewsCollection.updateOne(filter, update, option)
 //     res.send(result)
 // })
-app.patch('/user/admin', async (req, res) => {
+
+app.patch('/user/admin', verifyToken, verifyAdmin, async (req, res) => {
     const { email, username } = req.query;
     console.log(email, username, "admin handle this");
     const query = { email: email, name: username }
@@ -233,6 +241,16 @@ app.patch('/user/admin', async (req, res) => {
     res.send(result)
 }
 )
+app.patch('/user/admin/meals', verifyToken, verifyAdmin, async (req, res) => {
+    const { id } = req.query;
+    const meal = req.body;
+    const query = { _id: new ObjectId(id) };
+    const update = {
+        $set: {
+
+        }
+    }
+})
 
 app.patch('/meals', async (req, res) => {
     const id = req.query.id;
@@ -283,6 +301,13 @@ app.delete('/allreviews', async (req, res) => {
     const filter = { _id: new ObjectId(id) }
     const result = await allReviewsCollection.deleteOne(filter)
     res.send(result)
+})
+
+app.delete('/meals', async (req, res) => {
+    const { id } = req.query;
+    const query = { _id: new ObjectId(id) }
+    const result = await allMealsCollection.deleteOne(query);
+    res.send(result);
 })
 
 app.listen(port, () => {
