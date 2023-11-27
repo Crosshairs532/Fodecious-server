@@ -45,7 +45,7 @@ app.get('/upcoming', async (req, res) => {
     res.send(result)
 })
 app.get('/allreviews', async (req, res) => {
-    const { title, email } = req.query;
+    const { title, email, id } = req.query;
     console.log(title, email);
     let review_filter = {}
     if (title) {
@@ -53,6 +53,10 @@ app.get('/allreviews', async (req, res) => {
     }
     if (email) {
         review_filter = { email: email }
+
+    }
+    if (id) {
+        review_filter = { _id: new ObjectId(id) }
     }
     try {
         const result = await allReviewsCollection.find(review_filter).toArray();
@@ -73,11 +77,14 @@ app.get('/user', async (req, res) => {
     res.send(result)
 })
 app.get('/meals', async (req, res) => {
-    const { limit, offset, id, min } = req.query;
+    const { limit, offset, id, min, title } = req.query;
     console.log(min, "on server");
     let query = {}
     if (id) {
         query._id = new ObjectId(id)
+    }
+    if (title) {
+        query.title = title
     }
     console.log(limit, offset);
     try {
@@ -122,27 +129,29 @@ app.post('/user', async (req, res) => {
     const result = await allUserCollection.insertOne(user);
     res.send(result)
 })
-
 app.post('/allRequest', async (req, res) => {
-    const review = req.body;
-    console.log(review);
+    const request_meal = req.body;
+    console.log(request_meal);
     const { title } = req.query;
     console.log(title, "on");
-    const exist = await allRequestCollection.findOne({ title: title });
+    const exist = await allRequestCollection.findOne({ title: title, email: request_meal.email });
     console.log(exist);
-
     if (exist) {
         const update = {
             $set: {
-                count: review.count,
-                rcount: review.rcount,
-            }
+                count: request_meal.count,
+                rcount: request_meal.rcount,
+
+            },
+            $inc: { request_count: 1 }
         }
-        const result = await allRequestCollection.updateOne({ title: title }, update)
+        console.log("before update", request_meal);
+        const result = await allRequestCollection.updateOne({ title: title, email: request_meal.email }, update)
+        console.log("after update", result);
         res.send(result)
     }
     else {
-        const result = await allRequestCollection.insertOne(review);
+        const result = await allRequestCollection.insertOne(request_meal);
         res.send(result);
     }
 
@@ -177,11 +186,35 @@ app.patch('/meals', async (req, res) => {
     res.send(result)
 })
 
+app.patch('/allreviews', async (req, res) => {
+    const { id } = req.query;
+    const query = { _id: new ObjectId(id) }
+    const NewReview = req.body;
+    console.log(NewReview, id, "update review");
+    const update = {
+        $set: {
+            comment: NewReview.comment,
+            rating: NewReview.rating
+        }
+    }
+    const result = await allReviewsCollection.updateOne(query, update)
+    console.log(result);
+    res.send(result)
+})
+
+
+
 
 app.delete('/allRequest', async (req, res) => {
     const { id } = req.query;
     const filter = { _id: new ObjectId(id) }
     const result = await allRequestCollection.deleteOne(filter)
+    res.send(result)
+})
+app.delete('/allreviews', async (req, res) => {
+    const { id } = req.query;
+    const filter = { _id: new ObjectId(id) }
+    const result = await allReviewsCollection.deleteOne(filter)
     res.send(result)
 })
 
