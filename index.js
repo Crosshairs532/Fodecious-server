@@ -63,7 +63,6 @@ const verifyAdmin = async (req, res, next) => {
         return res.status(403).send({ message: 'forbidden access not for you bro' });
     }
     next();
-
 }
 // admin Checking
 app.get('/user/admin', verifyToken, async (req, res) => {
@@ -73,7 +72,6 @@ app.get('/user/admin', verifyToken, async (req, res) => {
     try {
         if (userEmail != decoded_email) {
             return res.status(401).send({ message: 'unauthorized not logged in access' })
-
         }
         const user = await allUserCollection.findOne({ email: decoded_email });
         let isAdmin = false;
@@ -104,7 +102,6 @@ app.get('/allreviews', async (req, res) => {
     }
     if (email) {
         review_filter = { email: email }
-
     }
     if (id) {
         review_filter = { _id: new ObjectId(id) }
@@ -222,12 +219,25 @@ app.post('/allRequest', async (req, res) => {
 //     const result = await allReviewsCollection.updateOne(filter, update, option)
 //     res.send(result)
 // })
+app.patch('/user/admin', async (req, res) => {
+    const { email, username } = req.query;
+    console.log(email, username, "admin handle this");
+    const query = { email: email, name: username }
+    console.log(query);
+    const update = {
+        $set: {
+            role: 'admin'
+        }
+    }
+    const result = await allUserCollection.updateOne(query, update);
+    res.send(result)
+}
+)
 
 app.patch('/meals', async (req, res) => {
     const id = req.query.id;
     const filter = { _id: new ObjectId(id) }
     const option = { upsert: true }
-
     const update = {
         $inc: {
             count: 1
@@ -236,7 +246,6 @@ app.patch('/meals', async (req, res) => {
     const result = await allMealsCollection.updateOne(filter, update, option)
     res.send(result)
 })
-
 app.patch('/allreviews', async (req, res) => {
     const { id } = req.query;
     const query = { _id: new ObjectId(id) }
@@ -255,7 +264,14 @@ app.patch('/allreviews', async (req, res) => {
 
 
 
-
+app.delete('/user/admin', async (req, res) => {
+    const { email, username } = req.query;
+    console.log(email, username, "admin handle this");
+    const query = { email: email, name: username }
+    console.log(query);
+    const result = await allUserCollection.deleteOne(query)
+    res.send(result);
+})
 app.delete('/allRequest', async (req, res) => {
     const { id } = req.query;
     const filter = { _id: new ObjectId(id) }
