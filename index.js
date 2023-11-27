@@ -30,13 +30,64 @@ const Dbconnect = async () => {
 }
 Dbconnect();
 
-
 // collections
 const allMealsCollection = client.db('FodeciousDb').collection('Allmeals');
 const allReviewsCollection = client.db('FodeciousDb').collection('Allreviews')
 const allUserCollection = client.db('FodeciousDb').collection('Allusers')
 const allRequestCollection = client.db('FodeciousDb').collection('Allrequest')
 const allUpcoming = client.db('FodeciousDb').collection('UpcomingMeals')
+
+const verifyToken = (req, res, next) => {
+    console.log("verify token");
+    console.log('inside verify token', req.headers.authorization);
+    if (!req.headers.authorization) {
+        return res.status(401).send({ message: 'unauthorized not logged access' });
+    }
+    const token = req.headers.authorization.split(' ')[1];
+    console.log(token);
+    jwt.verify(token, process.env.TOKEN_KEY, (er, decoded) => {
+        if (er) {
+            return res.status(401).send({ message: 'unauthorized not logged in access' })
+
+        }
+        req.decode = decoded;
+        next();
+    })
+}
+const verifyAdmin = async (req, res, next) => {
+    const email = req.decode.email;
+    const query = { email: email };
+    const result = await allUserCollection.findOne(query);
+    const isAdmin = result.role == 'admin';
+    if (!isAdmin) {
+        return res.status(403).send({ message: 'forbidden access not for you bro' });
+    }
+    next();
+
+}
+// admin Checking
+app.get('/user/admin', verifyToken, async (req, res) => {
+    const userEmail = req.query.email;
+    console.log(userEmail, "going for checking");
+    const decoded_email = req.decode.email;
+    try {
+        if (userEmail != decoded_email) {
+            return res.status(401).send({ message: 'unauthorized not logged in access' })
+
+        }
+        const user = await allUserCollection.findOne({ email: decoded_email });
+        let isAdmin = false;
+        if (user) {
+            isAdmin = user.role == 'admin';
+            res.send({ isAdmin })
+        }
+    } catch (error) {
+        console.log(error);
+    }
+
+
+})
+
 app.get('/', async (req, res) => {
     res.send('Fodecious server is running');
 })
