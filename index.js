@@ -118,6 +118,25 @@ app.get('/allreviews', async (req, res) => {
     }
 
 })
+app.get('/admin/allrequest', verifyToken, verifyAdmin, async (req, res) => {
+    const { name, email } = req.query
+    console.log(name, email);
+    let filter = {}
+    if (name && email) {
+        filter = {
+            $and: [
+                {
+                    username: { $regex: name, $options: 'i' }
+                },
+                {
+                    email: { $regex: email, $options: 'i' }
+                }
+            ]
+        }
+    }
+    const result = await allRequestCollection.find(filter).toArray();
+    res.send(result)
+})
 app.get('/user', async (req, res) => {
     const email = req.query.email;
     const query = {}
@@ -194,6 +213,7 @@ app.get('/admin/upcoming', async (req, res) => {
     const result = await allUpcoming.find().sort({ count: -1 }).toArray();
     res.send(result);
 })
+
 
 app.post('/admin/upcoming', verifyToken, verifyAdmin, async (req, res) => {
     const result = await allMealsCollection.insertOne(req.body);
@@ -291,6 +311,18 @@ app.post('/allRequest', async (req, res) => {
 //     const result = await allReviewsCollection.updateOne(filter, update, option)
 //     res.send(result)
 // })
+
+app.patch('/admin/Status', verifyToken, verifyAdmin, async (req, res) => {
+    const { id } = req.query;
+    const query = { _id: new ObjectId(id) }
+    const update = {
+        $set: {
+            status: 'delivered'
+        }
+    }
+    const result = await allRequestCollection.updateOne(query, update)
+    res.send(result);
+})
 
 app.patch('/user/admin', verifyToken, verifyAdmin, async (req, res) => {
     const { email, username } = req.query;
