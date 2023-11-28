@@ -190,8 +190,15 @@ app.get('/upcoming', async (req, res) => {
     const result = await allUpcoming.find().toArray();
     res.send(result);
 })
+app.get('/admin/upcoming', async (req, res) => {
+    const result = await allUpcoming.find().sort({ count: -1 }).toArray();
+    res.send(result);
+})
 
-
+app.post('/admin/upcoming', verifyToken, verifyAdmin, async (req, res) => {
+    const result = await allMealsCollection.insertOne(req.body);
+    res.send(result)
+})
 app.post('/likedMeals', async (req, res) => {
     const Meal = req.body;
     const update = {
