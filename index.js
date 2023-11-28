@@ -36,10 +36,12 @@ const allReviewsCollection = client.db('FodeciousDb').collection('Allreviews')
 const allUserCollection = client.db('FodeciousDb').collection('Allusers')
 const allRequestCollection = client.db('FodeciousDb').collection('Allrequest')
 const allUpcoming = client.db('FodeciousDb').collection('UpcomingMeals')
+const LikedMealsCollection = client.db('FodeciousDb').collection('LikedMeals');
+
 
 const verifyToken = (req, res, next) => {
-    console.log("verify token");
-    console.log('inside verify token', req.headers.authorization);
+    // console.log("verify token");
+    // console.log('inside verify token', req.headers.authorization);
     if (!req.headers.authorization) {
         return res.status(401).send({ message: 'unauthorized not logged access' });
     }
@@ -48,7 +50,6 @@ const verifyToken = (req, res, next) => {
     jwt.verify(token, process.env.TOKEN_KEY, (er, decoded) => {
         if (er) {
             return res.status(401).send({ message: 'unauthorized not logged in access' })
-
         }
         req.decode = decoded;
         next();
@@ -67,7 +68,6 @@ const verifyAdmin = async (req, res, next) => {
 // admin Checking
 app.get('/user/admin', verifyToken, async (req, res) => {
     const userEmail = req.query.email;
-    console.log(userEmail, "going for checking");
     const decoded_email = req.decode.email;
     try {
         if (userEmail != decoded_email) {
@@ -82,20 +82,23 @@ app.get('/user/admin', verifyToken, async (req, res) => {
     } catch (error) {
         console.log(error);
     }
-
-
 })
-
+app.get('/user/admin/allreviews', verifyToken, verifyAdmin, async (req, res) => {
+    const all_reviews = await allReviewsCollection.find().toArray();
+    res.send(all_reviews)
+})
 app.get('/', async (req, res) => {
     res.send('Fodecious server is running');
 })
 app.get('/upcoming', async (req, res) => {
     const result = await allUpcoming.find().toArray();
+
     res.send(result)
 })
 app.get('/allreviews', async (req, res) => {
+    console.log('httes');
     const { title, email, id } = req.query;
-    console.log(title, email);
+    // console.log(title, email);
     let review_filter = {}
     if (title) {
         review_filter = { title: title }
@@ -108,6 +111,7 @@ app.get('/allreviews', async (req, res) => {
     }
     try {
         const result = await allReviewsCollection.find(review_filter).toArray();
+        console.log(result, " from useresfafafa");
         res.send(result)
     } catch (error) {
         console.log(error);
@@ -117,7 +121,7 @@ app.get('/allreviews', async (req, res) => {
 app.get('/user', async (req, res) => {
     const email = req.query.email;
     const query = {}
-    console.log(email, "ema");
+    // console.log(email, "ema");
     if (email) {
         query.email = email
     }
@@ -126,17 +130,19 @@ app.get('/user', async (req, res) => {
 })
 app.get('/meals', async (req, res) => {
     const { limit, offset, id, min, title } = req.query;
-    console.log(min, "on server");
+    // console.log(min, "on server");
     let query = {}
     if (id) {
+        // console.log(id, "id on server");
         query._id = new ObjectId(id)
     }
     if (title) {
         query.title = title
     }
-    console.log(limit, offset);
+
     try {
         const meals = await allMealsCollection.find(query).skip(Number(offset)).limit(Number(limit)).toArray();
+        // console.log(meals, "meals in server");
         res.send(meals);
     } catch (error) {
         console.log(error.message);
@@ -152,14 +158,58 @@ app.get('/allRequest', async (req, res) => {
     res.send(result)
 })
 
+app.get('/upcomingLikedMeals', async (req, res) => {
+    const { email, title } = req.query;
+    let query = {}
+    if (email && title) {
+        query = { email: email, meal_title: title }
+    }
+    console.log(query);
+    const AlreadyLiked = await LikedMealsCollection.findOne(query);
+    console.log(AlreadyLiked);
+    if (AlreadyLiked) {
+        res.send(AlreadyLiked)
+    }
+    else {
+        res.send(false)
+    }
+
+})
+
+app.get('/likedMeals', async (req, res) => {
+    const { email } = req.query;
+    let query = {}
+    if (email) {
+        query = { email: email }
+    }
+    // console.log(query, "likelike");
+    const result = await LikedMealsCollection.find(query).toArray();
+    res.send(result);
+})
+app.get('/upcoming', async (req, res) => {
+    const result = await allUpcoming.find().toArray();
+    res.send(result);
+})
 
 
+app.post('/likedMeals', async (req, res) => {
+    const Meal = req.body;
+    const update = {
+        $inc: {
+            count: 1
+        }
+    }
 
+    const result = await LikedMealsCollection.insertOne({ ...Meal, likeInfo: true })
+    const update_upcoming_count = await allUpcoming.updateOne({ title: Meal.meal_title }, update)
+    res.send(result);
+})
 app.post('/meals', verifyToken, verifyAdmin, async (req, res) => {
     const meal = req.body;
     const result = await allMealsCollection.insertOne(meal);
     res.send(result);
 })
+
 app.post('/upcoming', verifyToken, verifyAdmin, async (req, res) => {
     const meal = req.body;
     const result = await allUpcoming.insertOne(meal);
@@ -167,8 +217,18 @@ app.post('/upcoming', verifyToken, verifyAdmin, async (req, res) => {
 })
 app.post('/allreviews', async (req, res) => {
     const review = req.body;
+    const isExist = await allMealsCollection.findOne({ title: review.title });
+    if (isExist) {
+        const update = {
+            $inc: {
+                rcount: 1
+            }
+        }
+        const result = await allMealsCollection.updateOne({ title: review.title }, update)
+    }
     const result = await allReviewsCollection.insertOne(review);
     res.send(result);
+
 })
 app.post('/jwt', async (req, res) => {
     const user_email = req.body;
@@ -187,29 +247,27 @@ app.post('/user', async (req, res) => {
 })
 app.post('/allRequest', async (req, res) => {
     const request_meal = req.body;
-    console.log(request_meal);
+    console.log(request_meal, "are vai");
     const { title } = req.query;
     console.log(title, "on");
     const exist = await allRequestCollection.findOne({ title: title, email: request_meal.email });
-    console.log(exist);
     if (exist) {
         const update = {
+            $inc: { request_count: 1 },
             $set: {
                 count: request_meal.count,
-                rcount: request_meal.rcount,
-            },
-            $inc: { request_count: 1 }
+                rcount: request_meal.rcount
+            }
         }
-        console.log("before update", request_meal);
+        // console.log("before update", request_meal);
         const result = await allRequestCollection.updateOne({ title: title, email: request_meal.email }, update)
-        console.log("after update", result);
+        console.log("after update", result.data);
         res.send(result)
     }
     else {
         const result = await allRequestCollection.insertOne(request_meal);
         res.send(result);
     }
-
 })
 
 // app.patch('/allreviews', async (req, res) => {
@@ -229,9 +287,9 @@ app.post('/allRequest', async (req, res) => {
 
 app.patch('/user/admin', verifyToken, verifyAdmin, async (req, res) => {
     const { email, username } = req.query;
-    console.log(email, username, "admin handle this");
+    // console.log(email, username, "admin handle this");
     const query = { email: email, name: username }
-    console.log(query);
+    // console.log(query);
     const update = {
         $set: {
             role: 'admin'
@@ -251,7 +309,7 @@ app.patch('/user/admin/meals', verifyToken, verifyAdmin, async (req, res) => {
         }
     }
 })
-
+// all meals , here count is number of likes .
 app.patch('/meals', async (req, res) => {
     const id = req.query.id;
     const filter = { _id: new ObjectId(id) }
@@ -268,7 +326,7 @@ app.patch('/allreviews', async (req, res) => {
     const { id } = req.query;
     const query = { _id: new ObjectId(id) }
     const NewReview = req.body;
-    console.log(NewReview, id, "update review");
+    // console.log(NewReview, id, "update review");
     const update = {
         $set: {
             comment: NewReview.comment,
@@ -284,9 +342,9 @@ app.patch('/allreviews', async (req, res) => {
 
 app.delete('/user/admin', async (req, res) => {
     const { email, username } = req.query;
-    console.log(email, username, "admin handle this");
+    // console.log(email, username, "admin handle this");
     const query = { email: email, name: username }
-    console.log(query);
+    // console.log(query);
     const result = await allUserCollection.deleteOne(query)
     res.send(result);
 })
