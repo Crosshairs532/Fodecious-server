@@ -3,10 +3,10 @@ const cors = require('cors');
 const port = process.env.PORT || 3000;
 const app = express();
 const jwt = require('jsonwebtoken')
+const stripe = require('stripe')('sk_test_51OEBSyGrZhzy0KhFr6kXPT5gd6qtU3Q1va20BAzF6vlQ8V0g8eYP6JrniDHHmMp4EYZ2VPz0MgBOJHWZoYxAvul100JUpjUG0t')
 require('dotenv').config();
 app.use(cors())
 app.use(express.json())
-
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const { JsonWebTokenError } = require('jsonwebtoken');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.wtx9jbs.mongodb.net/?retryWrites=true&w=majority`;
@@ -37,7 +37,7 @@ const allUserCollection = client.db('FodeciousDb').collection('Allusers')
 const allRequestCollection = client.db('FodeciousDb').collection('Allrequest')
 const allUpcoming = client.db('FodeciousDb').collection('UpcomingMeals')
 const LikedMealsCollection = client.db('FodeciousDb').collection('LikedMeals');
-
+const paymentCollections = client.db('FodeciousDb').collection('payments');
 
 const verifyToken = (req, res, next) => {
     // console.log("verify token");
@@ -65,6 +65,32 @@ const verifyAdmin = async (req, res, next) => {
     }
     next();
 }
+
+app.post("/create-payment-intent", async (req, res) => {
+    const { price } = req.body;
+    const amount = parseInt(price * 100);
+    const payementIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'USD',
+        payment_method_types: [
+            'card'
+        ]
+    })
+    res.send({
+        clientSecret: payementIntent.client_secret
+    })
+})
+app.post('/payments', async (req, res) => {
+    const payment = req.body;
+    const result = await paymentCollections.insertOne(payment)
+    res.send(result)
+
+})
+
+
+
+
+
 app.get('/', async (req, res) => {
     res.send('Fodecious server is running');
 })
@@ -93,7 +119,6 @@ app.get('/user/admin/allreviews', verifyToken, verifyAdmin, async (req, res) => 
 
 app.get('/upcoming', async (req, res) => {
     const result = await allUpcoming.find().toArray();
-
     res.send(result)
 })
 app.get('/allreviews', async (req, res) => {
@@ -386,7 +411,20 @@ app.patch('/allreviews', async (req, res) => {
     console.log(result);
     res.send(result)
 })
-
+app.patch('/admin/badge_update', async (req, res) => {
+    const { badge, email } = req.body;
+    const filter = { email: email };
+    const update = {
+        $set: {
+            badge: badge
+        },
+        $push: {
+            all_badge: badge
+        }
+    };
+    const result = await allUserCollection.updateOne(filter, update);
+    res.send(result)
+})
 
 
 app.delete('/user/admin', async (req, res) => {
