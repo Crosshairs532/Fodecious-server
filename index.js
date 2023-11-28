@@ -65,6 +65,9 @@ const verifyAdmin = async (req, res, next) => {
     }
     next();
 }
+app.get('/', async (req, res) => {
+    res.send('Fodecious server is running');
+})
 // admin Checking
 app.get('/user/admin', verifyToken, async (req, res) => {
     const userEmail = req.query.email;
@@ -87,9 +90,7 @@ app.get('/user/admin/allreviews', verifyToken, verifyAdmin, async (req, res) => 
     const all_reviews = await allReviewsCollection.find().toArray();
     res.send(all_reviews)
 })
-app.get('/', async (req, res) => {
-    res.send('Fodecious server is running');
-})
+
 app.get('/upcoming', async (req, res) => {
     const result = await allUpcoming.find().toArray();
 
@@ -137,6 +138,7 @@ app.get('/admin/allrequest', verifyToken, verifyAdmin, async (req, res) => {
     const result = await allRequestCollection.find(filter).toArray();
     res.send(result)
 })
+
 app.get('/user', async (req, res) => {
     const email = req.query.email;
     const query = {}
@@ -147,12 +149,20 @@ app.get('/user', async (req, res) => {
     const result = await allUserCollection.find(query).toArray();
     res.send(result)
 })
+app.get('/admin/meals', verifyToken, verifyAdmin, async (req, res) => {
+    const { email } = req.query;
+    let query = {}
+    if (email) {
+        query = { email: email }
+    }
+    const result = await allMealsCollection.find(query).toArray();
+    res.send(result)
+})
+
 app.get('/meals', async (req, res) => {
     const { limit, offset, id, min, title } = req.query;
-    // console.log(min, "on server");
     let query = {}
     if (id) {
-        // console.log(id, "id on server");
         query._id = new ObjectId(id)
     }
     if (title) {
