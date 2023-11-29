@@ -87,7 +87,71 @@ app.post('/payments', async (req, res) => {
 
 })
 
+// Pegination  start
 
+
+
+
+
+
+app.get('/pagination/request_user', async (req, res) => {
+    const email = req.query.email;
+    let query = {};
+    if (email) {
+        query = { email: email };
+    }
+    const count = await allRequestCollection.countDocuments(query);
+    res.send({ count: count });
+});
+app.get('/pagination/my_reviews_user', async (req, res) => {
+    const email = req.query.email;
+    let query = {};
+    if (email) {
+        query = { email: email };
+    }
+    const count = await allReviewsCollection.countDocuments(query);
+    console.log(count, "reviews count");
+    res.send({ count: count });
+})
+
+app.get('/pagination/admin/upcoming', verifyToken, verifyAdmin, async (req, res) => {
+    const result = await allUpcoming.estimatedDocumentCount();
+    res.send({ count: result });
+})
+
+app.get('/pagination/admin/allrequest', verifyToken, verifyAdmin, async (req, res) => {
+    const result = await allRequestCollection.estimatedDocumentCount()
+    console.log(result, "server meks coujj");
+    res.send({ count: result });
+})
+app.get('/pagination/AdminAllmeal', verifyToken, verifyAdmin, async (req, res) => {
+    const result = await allMealsCollection.estimatedDocumentCount()
+    res.send({ count: result });
+})
+app.get('/pagination/admin/Allusers', async (req, res) => {
+    const result = await allUserCollection.estimatedDocumentCount()
+    res.send({ count: result });
+})
+app.get('/pagination/admin/allReviews', async (req, res) => {
+    const result = await allReviewsCollection.estimatedDocumentCount();
+    res.send({ count: result });
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// pagination end
 
 
 
@@ -113,7 +177,9 @@ app.get('/user/admin', verifyToken, async (req, res) => {
     }
 })
 app.get('/user/admin/allreviews', verifyToken, verifyAdmin, async (req, res) => {
-    const all_reviews = await allReviewsCollection.find().sort({ count: -1, rcount: 1 }).toArray();
+    const page = parseInt(req.query.page);
+    const size = parseInt(req.query.size);
+    const all_reviews = await allReviewsCollection.find().skip(page * size).limit(size).sort({ count: -1, rcount: 1 }).toArray();
     res.send(all_reviews)
 })
 
@@ -121,9 +187,13 @@ app.get('/upcoming', async (req, res) => {
     const result = await allUpcoming.find().toArray();
     res.send(result)
 })
+
 app.get('/allreviews', async (req, res) => {
-    console.log('httes');
+    // console.log('httes');
     const { title, email, id } = req.query;
+    const page = parseInt(req.query.page);
+    const size = parseInt(req.query.size);
+    console.log(page, size)
     // console.log(title, email);
     let review_filter = {}
     if (title) {
@@ -136,8 +206,8 @@ app.get('/allreviews', async (req, res) => {
         review_filter = { _id: new ObjectId(id) }
     }
     try {
-        const result = await allReviewsCollection.find(review_filter).toArray();
-        console.log(result, " from useresfafafa");
+        const result = await allReviewsCollection.find(review_filter).skip(page * size).limit(size).toArray();
+        // console.log(result, " from useresfafafa");
         res.send(result)
     } catch (error) {
         console.log(error);
@@ -147,6 +217,8 @@ app.get('/allreviews', async (req, res) => {
 app.get('/admin/allrequest', verifyToken, verifyAdmin, async (req, res) => {
     const { name, email } = req.query
     console.log(name, email);
+    const page = parseInt(req.query.page);
+    const size = parseInt(req.query.size);
     let filter = {}
     if (name && email) {
         filter = {
@@ -160,8 +232,16 @@ app.get('/admin/allrequest', verifyToken, verifyAdmin, async (req, res) => {
             ]
         }
     }
-    const result = await allRequestCollection.find(filter).toArray();
+    const result = await allRequestCollection.find(filter).skip(page * size).limit(size).toArray();
+    console.log(result, "admin serve");
     res.send(result)
+})
+app.get('/admin_user', async (req, res) => {
+    const page = parseInt(req.query.page);
+    const size = parseInt(req.query.size);
+    const result = await allUserCollection.find().skip(page * size).limit(size).toArray();
+    res.send(result)
+
 })
 app.get('/user', async (req, res) => {
     const email = req.query.email;
@@ -171,7 +251,6 @@ app.get('/user', async (req, res) => {
         query.email = email
     }
     const result = await allUserCollection.find(query).toArray();
-    console.log(result, "role");
     res.send(result)
 })
 app.get('/admin/meals', verifyToken, verifyAdmin, async (req, res) => {
@@ -183,10 +262,21 @@ app.get('/admin/meals', verifyToken, verifyAdmin, async (req, res) => {
     const result = await allMealsCollection.find(query).toArray();
     res.send(result)
 })
-
+app.get('/admin/allmeals', verifyToken, verifyAdmin, async (req, res) => {
+    const page = parseInt(req.query.page);
+    const size = parseInt(req.query.size);
+    console.log(size, page);
+    try {
+        const meals = await allMealsCollection.find().skip(page * size).limit(size).toArray();
+        console.log(meals, "meals in server");
+        res.send(meals);
+    } catch (error) {
+        console.log(error.message);
+    }
+})
 app.get('/meals', async (req, res) => {
     const { limit, offset, id, min, title, searchval } = req.query;
-    console.log(searchval, "hheheheheheeheh");
+    // const
     let query = {}
     if (searchval) {
         query = {
@@ -196,7 +286,6 @@ app.get('/meals', async (req, res) => {
                 { price: { $regex: searchval, $options: 'i' } }
             ]
         };
-
         console.log(query, "inside and sinsf");
     };
 
@@ -213,11 +302,13 @@ app.get('/meals', async (req, res) => {
 });
 app.get('/allRequest', async (req, res) => {
     const { email } = req.query;
+    const page = parseInt(req.query.page);
+    const size = parseInt(req.query.size);
     let query = {}
     if (email) {
         query = { email: email }
     }
-    const result = await allRequestCollection.find(query).sort({ status: -1 }).toArray();
+    const result = await allRequestCollection.find(query).skip(page * size).limit(size).sort({ status: -1 }).toArray();
     res.send(result)
 })
 
@@ -253,16 +344,28 @@ app.get('/upcoming', async (req, res) => {
     const result = await allUpcoming.find().toArray();
     res.send(result);
 })
-app.get('/admin/upcoming', async (req, res) => {
-    const result = await allUpcoming.find().sort({ count: -1 }).toArray();
+
+
+
+
+
+
+app.get('/admin/upcoming', verifyToken, verifyAdmin, async (req, res) => {
+    const page = parseInt(req.query.page);
+    const size = parseInt(req.query.size);
+    const result = await allUpcoming.find().skip(page * size).limit(size).sort({ count: -1 }).toArray();
     res.send(result);
 })
-
-
 app.post('/admin/upcoming', verifyToken, verifyAdmin, async (req, res) => {
     const result = await allMealsCollection.insertOne(req.body);
     res.send(result)
 })
+
+
+
+
+
+
 app.post('/likedMeals', async (req, res) => {
     const Meal = req.body;
     const update = {
