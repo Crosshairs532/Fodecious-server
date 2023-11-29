@@ -185,15 +185,24 @@ app.get('/admin/meals', verifyToken, verifyAdmin, async (req, res) => {
 })
 
 app.get('/meals', async (req, res) => {
-    const { limit, offset, id, min, title } = req.query;
+    const { limit, offset, id, min, title, searchval } = req.query;
+    console.log(searchval, "hheheheheheeheh");
     let query = {}
-    if (id) {
-        query._id = new ObjectId(id)
-    }
-    if (title) {
-        query.title = title
-    }
+    if (searchval) {
+        query = {
+            $or: [
+                { title: { $regex: searchval, $options: 'i' } },
+                { category: { $regex: searchval, $options: 'i' } },
+                { price: { $regex: searchval, $options: 'i' } }
+            ]
+        };
 
+        console.log(query, "inside and sinsf");
+    };
+
+    if (id) {
+        query._id = new ObjectId(id);
+    }
     try {
         const meals = await allMealsCollection.find(query).skip(Number(offset)).limit(Number(limit)).toArray();
         // console.log(meals, "meals in server");
