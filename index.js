@@ -113,7 +113,7 @@ app.get('/user/admin', verifyToken, async (req, res) => {
     }
 })
 app.get('/user/admin/allreviews', verifyToken, verifyAdmin, async (req, res) => {
-    const all_reviews = await allReviewsCollection.find().toArray();
+    const all_reviews = await allReviewsCollection.find().sort({ count: -1, rcount: 1 }).toArray();
     res.send(all_reviews)
 })
 
@@ -163,15 +163,15 @@ app.get('/admin/allrequest', verifyToken, verifyAdmin, async (req, res) => {
     const result = await allRequestCollection.find(filter).toArray();
     res.send(result)
 })
-
 app.get('/user', async (req, res) => {
     const email = req.query.email;
     const query = {}
-    // console.log(email, "ema");
+    console.log(email, "ema");
     if (email) {
         query.email = email
     }
     const result = await allUserCollection.find(query).toArray();
+    console.log(result, "role");
     res.send(result)
 })
 app.get('/admin/meals', verifyToken, verifyAdmin, async (req, res) => {
@@ -208,7 +208,7 @@ app.get('/allRequest', async (req, res) => {
     if (email) {
         query = { email: email }
     }
-    const result = await allRequestCollection.find(query).toArray();
+    const result = await allRequestCollection.find(query).sort({ status: -1 }).toArray();
     res.send(result)
 })
 
@@ -261,13 +261,13 @@ app.post('/likedMeals', async (req, res) => {
             count: 1
         }
     }
-
     const result = await LikedMealsCollection.insertOne({ ...Meal, likeInfo: true })
     const update_upcoming_count = await allUpcoming.updateOne({ title: Meal.meal_title }, update)
     res.send(result);
 })
 app.post('/meals', verifyToken, verifyAdmin, async (req, res) => {
     const meal = req.body;
+    console.log(meal, "admin prode");
     const result = await allMealsCollection.insertOne(meal);
     res.send(result);
 })
