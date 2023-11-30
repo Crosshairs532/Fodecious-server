@@ -19,9 +19,11 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+
+
 const Dbconnect = async () => {
     try {
-        await client.connect()
+        client.connect()
         console.log('Fedocuis Database Connceted Successfully');
     }
     catch (error) {
@@ -39,6 +41,9 @@ const allUpcoming = client.db('FodeciousDb').collection('UpcomingMeals')
 const LikedMealsCollection = client.db('FodeciousDb').collection('LikedMeals');
 const paymentCollections = client.db('FodeciousDb').collection('payments');
 
+app.get('/', async (req, res) => {
+    res.send('Fodecious server is running');
+})
 const verifyToken = (req, res, next) => {
     // console.log("verify token");
     // console.log('inside verify token', req.headers.authorization);
@@ -155,9 +160,6 @@ app.get('/pagination/admin/allReviews', async (req, res) => {
 
 
 
-app.get('/', async (req, res) => {
-    res.send('Fodecious server is running');
-})
 // admin Checking
 app.get('/user/admin', verifyToken, async (req, res) => {
     const userEmail = req.query.email;
