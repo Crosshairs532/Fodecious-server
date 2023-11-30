@@ -257,7 +257,7 @@ app.get('/admin/meals', verifyToken, verifyAdmin, async (req, res) => {
     const { email } = req.query;
     let query = {}
     if (email) {
-        query = { email: email }
+        query = { distributorEmail: email }
     }
     const result = await allMealsCollection.find(query).toArray();
     res.send(result)
@@ -292,9 +292,12 @@ app.get('/meals', async (req, res) => {
     if (id) {
         query._id = new ObjectId(id);
     }
+    if (title) {
+        query.title = title
+    }
     try {
         const meals = await allMealsCollection.find(query).skip(Number(offset)).limit(Number(limit)).toArray();
-        // console.log(meals, "meals in server");
+        console.log(meals, "meals in server");
         res.send(meals);
     } catch (error) {
         console.log(error.message);
@@ -344,7 +347,6 @@ app.get('/upcoming', async (req, res) => {
     const result = await allUpcoming.find().toArray();
     res.send(result);
 })
-
 
 
 
@@ -406,6 +408,7 @@ app.post('/allreviews', async (req, res) => {
 })
 app.post('/jwt', async (req, res) => {
     const user_email = req.body;
+    console.log(user_email, "googll");
     const token = jwt.sign(user_email, process.env.TOKEN_KEY, { expiresIn: '2hr' })
     res.send({ token: token })
 })
@@ -414,7 +417,7 @@ app.post('/user', async (req, res) => {
     const filter = { email: user.email };
     const ExistUser = await allUserCollection.findOne(filter);
     if (ExistUser) {
-        res.send({ message: `same email contains another user` })
+        return res.send({ message: `same email contains another user` })
     }
     const result = await allUserCollection.insertOne(user);
     res.send(result)
@@ -444,20 +447,6 @@ app.post('/allRequest', async (req, res) => {
     }
 })
 
-// app.patch('/allreviews', async (req, res) => {
-//     const review = req.body;
-//     console.log(review, "backend");
-//     const { title } = req.query;
-//     const filter = { title: title };
-//     const option = { upsert: true }
-//     const update = {
-//         $push: {
-//             userReviews: review
-//         }
-//     }
-//     const result = await allReviewsCollection.updateOne(filter, update, option)
-//     res.send(result)
-// })
 
 app.patch('/admin/Status', verifyToken, verifyAdmin, async (req, res) => {
     const { id } = req.query;
@@ -478,7 +467,8 @@ app.patch('/user/admin', verifyToken, verifyAdmin, async (req, res) => {
     // console.log(query);
     const update = {
         $set: {
-            role: 'admin'
+            role: 'admin',
+            badge: 'Platinum'
         }
     }
     const result = await allUserCollection.updateOne(query, update);
@@ -486,14 +476,18 @@ app.patch('/user/admin', verifyToken, verifyAdmin, async (req, res) => {
 }
 )
 app.patch('/user/admin/meals', verifyToken, verifyAdmin, async (req, res) => {
-    const { id } = req.query;
-    const meal = req.body;
-    const query = { _id: new ObjectId(id) };
+    const { title } = req.query;
+    const data = req.body;
+    console.log(data.rcount, "hiiiiiii");
     const update = {
         $set: {
-
+            title: data.title, details: data.details, category: data.category, rating: parseFloat(data.rating), price: data.price, postTime: data.postTime, ingredients: data.ingredients, count: parseInt(data.count), rcount: parseInt(data.rcount), distributorName: data.distributorName,
+            distributorEmail: data.distributorEmail, image: data.image
         }
     }
+    const all = await allMealsCollection.updateOne({ title: title }, update);
+    const up = await allUpcoming.updateOne({ title: title }, update);
+    res.send(all)
 })
 // all meals , here count is number of likes .
 app.patch('/meals', async (req, res) => {
