@@ -5,7 +5,7 @@
 
 # How to run server
 <p>
-  To run the server make sure you have installed nodejs, express, mongodb, firebase 
+  To run the server make sure you have installed nodejs, express, mongodb, firebase , jwt
 </p>
 
 # For packages 
